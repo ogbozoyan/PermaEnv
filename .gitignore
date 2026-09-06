@@ -1,0 +1,37 @@
+# Python / build output
+__pycache__/
+*.py[cod]
+.venv/
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage*
+htmlcov/
+coverage.xml
+
+# Local machine files
+.DS_Store
+.idea/
+.vscode/
+.env
+.env.*
+!.env.example
+
+# Planning stays outside the public repository
+/planning/
+/specs/
+/docs/superpowers/
+/docs/adr/
+/.agents/
+/.codex/
+
+# User environments, backups and credentials
+*.permaenv.tar.zst
+*.permaenv.tar.zst.age
+*.sqlite3
+*.sqlite3-*
+credentials.json
+token.json

@@ -1,0 +1,21 @@
+name: Integration request
+description: Suggest an application or environment integration.
+body:
+  - type: input
+    id: app
+    attributes:
+      label: Application and platforms
+    validations:
+      required: true
+  - type: textarea
+    id: state
+    attributes:
+      label: What should be preserved?
+      description: Settings, extensions, profiles, runtimes or other user-level state.
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: Official documentation and known locations
+      description: Link to documented export/import commands or configuration formats.

@@ -1,0 +1,33 @@
+name: Bug report
+description: Report a reproducible problem with the current implementation.
+body:
+  - type: markdown
+    attributes:
+      value: "Use synthetic examples. Remove credentials and private paths from logs."
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, architecture, Python version and PermaEnv version or commit.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include the exact command and a minimal example.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include sanitized output if it helps explain the problem.
+    validations:
+      required: true
