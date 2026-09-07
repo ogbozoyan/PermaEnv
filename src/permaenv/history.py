@@ -1,6 +1,5 @@
 """Application service for explicit environments and immutable local snapshots."""
 
-import json
 import tomllib
 from collections.abc import Sequence
 from datetime import UTC, datetime
@@ -22,6 +21,35 @@ from permaenv.models import (
     validate_relative_path,
 )
 from permaenv.storage import Store, new_id
+
+
+def _toml_string(value: str) -> str:
+    """Encode a TOML basic string using Unicode scalar escapes, never surrogates."""
+    escaped = []
+    for character in value:
+        code = ord(character)
+        if 0xD800 <= code <= 0xDFFF:
+            raise HistoryError("invalid_path", "Paths must contain Unicode scalar values", 2)
+        if character in {'"', "\\"}:
+            escaped.append("\\" + character)
+        elif code < 0x20 or code >= 0x7F:
+            escaped.append(f"\\u{code:04X}" if code <= 0xFFFF else f"\\U{code:08X}")
+        else:
+            escaped.append(character)
+    return '"' + "".join(escaped) + '"'
+
+
+def _environment_toml(environment: Environment) -> bytes:
+    lines = [
+        f"schema_version = {environment.schema_version}",
+        f"name = {_toml_string(environment.name)}",
+        f"adapter_id = {_toml_string(environment.adapter_id)}",
+        f"adapter_version = {environment.adapter_version}",
+        "files = [" + ", ".join(_toml_string(path) for path in environment.files) + "]",
+    ]
+    if environment.root is not None:
+        lines.append(f"root = {_toml_string(environment.root)}")
+    return ("\n".join(lines) + "\n").encode("utf-8")
 
 
 class HistoryService:
@@ -60,18 +88,9 @@ class HistoryService:
             with ConfinedFiles(absolute) as confined:
                 for path in paths:
                     confined.read(path)
+        document = _environment_toml(environment)
         with self.store.lock():
-            # JSON string syntax is also valid for these TOML strings/arrays.
-            values = environment.to_dict()
-            document = (
-                "\n".join(
-                    f"{key} = {json.dumps(value)}"
-                    for key, value in values.items()
-                    if value is not None
-                )
-                + "\n"
-            )
-            self.store.atomic_bytes(f"environments/{name}.toml", document.encode(), overwrite=False)
+            self.store.atomic_bytes(f"environments/{name}.toml", document, overwrite=False)
             if select:
                 self.store.atomic_json("selection.json", {"schema_version": 1, "environment": name})
         return environment

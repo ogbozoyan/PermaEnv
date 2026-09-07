@@ -297,3 +297,42 @@ def test_corrupt_run_json_has_content_free_error(service: HistoryService):
             service.store.get_run(run.id)
     assert exc.value.code == "invalid_record"
     assert "secret" not in str(exc.value)
+
+
+@pytest.mark.parametrize(
+    ("root_name", "file_name"),
+    [("root😀", "a"), ("root", "a😀"), ("root", "a\x7f"), ("root", 'a"\t\né')],
+)
+def test_environment_toml_round_trips_unicode_and_controls(
+    service: HistoryService, tmp_path: Path, root_name: str, file_name: str
+):
+    root = tmp_path / root_name
+    root.mkdir()
+    (root / file_name).write_bytes(b"preserved")
+    environment = service.create_environment("unicode", root, [file_name], select=True)
+    reopened = HistoryService(service.store.root)
+    assert reopened.get_environment() == environment
+    snapshot = reopened.snapshot()
+    assert snapshot.root == str(root)
+    assert snapshot.entries[0].path == file_name
+    assert reopened.store.read_object(snapshot.entries[0].state.sha256) == b"preserved"
+
+
+@pytest.mark.parametrize("existing_state", [False, True])
+def test_state_ancestor_symlink_rejected_before_creation_or_chmod(
+    tmp_path: Path, existing_state: bool
+):
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    state = outside / "state"
+    if existing_state:
+        state.mkdir(mode=0o755)
+        (state / "objects").mkdir(mode=0o755)
+    previous_modes = {path.relative_to(outside): path.stat().st_mode for path in outside.rglob("*")}
+    (tmp_path / "alias").symlink_to(outside, target_is_directory=True)
+    with pytest.raises(HistoryError) as exc:
+        HistoryService(tmp_path / "alias/state").create_environment("empty")
+    assert exc.value.code == "symlink"
+    assert {
+        path.relative_to(outside): path.stat().st_mode for path in outside.rglob("*")
+    } == previous_modes

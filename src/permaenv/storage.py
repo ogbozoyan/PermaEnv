@@ -68,18 +68,38 @@ class Store:
     def __init__(self, root: Path | None = None) -> None:
         self.root = (root if root is not None else default_state_dir()).expanduser().absolute()
 
+    @staticmethod
+    def _ensure_directory(name: str, parent: int) -> int:
+        """Open or create exactly one component without following symlinks."""
+        try:
+            return ConfinedFiles._open_directory(name, parent)
+        except FileNotFoundError:
+            try:
+                os.mkdir(name, mode=0o700, dir_fd=parent)
+            except FileExistsError:
+                # Another initializer may have created it; still check no-follow.
+                pass
+            else:
+                os.fsync(parent)
+            return ConfinedFiles._open_directory(name, parent)
+
     def initialize(self) -> None:
         try:
-            if self.root.is_symlink():
-                raise HistoryError("symlink", "State directory cannot be a symlink")
-            self.root.mkdir(mode=0o700, parents=True, exist_ok=True)
-            os.chmod(self.root, 0o700)
-            for name in ["environments", "snapshots", "plans", "objects"]:
-                path = self.root / name
-                if path.is_symlink():
-                    raise HistoryError("symlink", "State subdirectory cannot be a symlink")
-                path.mkdir(mode=0o700, exist_ok=True)
-                os.chmod(path, 0o700)
+            parent = ConfinedFiles._open_directory("/", None)
+            try:
+                for part in self.root.parts[1:]:
+                    child = self._ensure_directory(part, parent)
+                    os.close(parent)
+                    parent = child
+                os.fchmod(parent, 0o700)
+                for name in ["environments", "snapshots", "plans", "objects"]:
+                    child = self._ensure_directory(name, parent)
+                    try:
+                        os.fchmod(child, 0o700)
+                    finally:
+                        os.close(child)
+            finally:
+                os.close(parent)
         except OSError:
             raise HistoryError("store_error", "Cannot initialize local state directory") from None
 
