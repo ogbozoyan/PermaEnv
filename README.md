@@ -1,13 +1,13 @@
 <div align="center">
 
-<img src="assets/banner.svg" alt="PermaEnv — Your environment. A place to come back to." width="1200" />
+<img src="https://raw.githubusercontent.com/ogbozoyan/PermaEnv/main/assets/banner.png" alt="PermaEnv — Your developer setup, saved for what’s next. An archive of saved snapshots in warm terracotta and amber." width="1200" />
 
-**A Python-first toolkit for portable developer environments on macOS and Linux.**
+**A simpler way to save, version, and move your developer setup.**
 
 [![CI](https://github.com/ogbozoyan/PermaEnv/actions/workflows/ci.yml/badge.svg)](https://github.com/ogbozoyan/PermaEnv/actions/workflows/ci.yml)
-[![Python](https://img.shields.io/badge/python-3.12%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-75B798)](LICENSE)
-![Status: pre-alpha](https://img.shields.io/badge/status-pre--alpha-D9A441)
+[![Python](https://img.shields.io/badge/python-3.12%2B-8B5E46?logo=python&logoColor=white)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-BB6548)](LICENSE)
+![Status: pre-alpha](https://img.shields.io/badge/status-pre--alpha-C99548)
 
 [Get started](#get-started) · [Current status](#current-status) · [Contribute](CONTRIBUTING.md) · [Report an issue](https://github.com/ogbozoyan/PermaEnv/issues/new/choose)
 
@@ -44,45 +44,133 @@ are **not implemented yet**. Do not rely on this version to protect or recover y
 
 ## Get started
 
-You need [uv](https://docs.astral.sh/uv/getting-started/installation/) and Git.
+**Install the current development version, or build it yourself.** Both paths work on
+macOS and Linux. The CLI requires Python 3.12+; uv can install that interpreter for you.
+
+| Your goal | Start here |
+| :--- | :--- |
+| Use PermaEnv on your machine | [Install with your package manager](#install-with-your-package-manager) |
+| Run or change the source | [Build locally](#build-locally) |
+| Install a native Homebrew release | [Homebrew release status](#homebrew-release-status) |
+
+### Install with your package manager
+
+Use your system's manager to install the tooling below, then install PermaEnv from
+its Git repository into an isolated environment. These commands track `main`.
+
+<details open>
+<summary><strong>macOS · Homebrew + uv</strong></summary>
+
+```bash
+brew install git uv
+uv tool install --python 3.12 "git+https://github.com/ogbozoyan/PermaEnv.git@main"
+uv tool update-shell
+```
+
+Open a new terminal after updating your PATH, then run `permaenv doctor`.
+Already have Git and uv on Linux? The same `uv tool install` command works there.
+
+</details>
+
+<details>
+<summary><strong>Linux · APT, DNF or Pacman + pipx</strong></summary>
+
+Install Git, Python and pipx using the command for your distribution:
+
+| Distribution | Prepare the tools |
+| :--- | :--- |
+| Ubuntu 24.04+ / Debian 13+ | `sudo apt update` then `sudo apt install git python3 python3-venv pipx` |
+| Fedora with Python 3.12+ | `sudo dnf install git python3 pipx` |
+| Arch Linux | `sudo pacman -Syu --needed git python python-pipx` |
+
+Then install the application:
+
+```bash
+python3 --version
+pipx install --python python3 "git+https://github.com/ogbozoyan/PermaEnv.git@main"
+pipx ensurepath
+```
+
+The reported Python version must be 3.12 or newer. On older distributions, use
+[uv](https://docs.astral.sh/uv/getting-started/installation/) and the `--python 3.12`
+installation command above. Open a new terminal after `pipx ensurepath`, then run
+`permaenv doctor`.
+
+APT, DNF and Pacman install the prerequisites here; PermaEnv itself is fetched from
+Git. Native PermaEnv packages for these managers have not been published.
+
+</details>
+
+<details>
+<summary><strong>macOS · MacPorts + uv</strong></summary>
+
+```bash
+sudo port install git uv
+uv tool install --python 3.12 "git+https://github.com/ogbozoyan/PermaEnv.git@main"
+uv tool update-shell
+```
+
+Open a new terminal, then run `permaenv doctor`. MacPorts supplies the tooling;
+there is no native PermaEnv port yet.
+
+</details>
+
+Refresh the development installation with the tool you used to install it:
+
+```bash
+uv tool upgrade permaenv       # uv installation
+pipx reinstall permaenv        # Fetch main again, even if the package version is unchanged
+```
+
+See the official [uv tool guide](https://docs.astral.sh/uv/guides/tools/) and
+[pipx installation guide](https://pipx.pypa.io/latest/how-to/install-pipx.html)
+for PATH setup and platform prerequisites.
+
+### Build locally
+
+You need Git and [uv](https://docs.astral.sh/uv/getting-started/installation/).
+Clone the source, install the locked development environment and run the CLI:
 
 ```bash
 git clone https://github.com/ogbozoyan/PermaEnv.git
 cd PermaEnv
 uv sync --locked
-
-uv run permaenv --help
 uv run permaenv doctor
-uv run permaenv doctor --json
 ```
 
-The repository selects Python 3.12 by default; the package supports Python 3.12+.
-uv can provision the selected interpreter when it is not available locally.
-
-To install the command into its own environment after cloning:
+Build the wheel and source archive, then install your local wheel as a command:
 
 ```bash
-uv tool install .
-permaenv doctor
+uv build
+uv tool install --python 3.12 dist/permaenv-*.whl
 ```
 
-### Homebrew distribution
+The build writes `.whl` and `.tar.gz` files to `dist/`. Keep only one version's wheel
+there when using the wildcard above. If PermaEnv is already installed through uv,
+add `--force` to replace that installation with your local build. Use
+`uv tool update-shell` and reopen the terminal if the command is not on PATH.
 
-Homebrew is a supported distribution target for the CLI on macOS and Linux.
-**The first release and tap have not been published yet.** Once available, installation
-and updates will use:
+### Homebrew release status
+
+**Coming after the first release.** CI already generates a checksummed Homebrew formula,
+but the release and tap have not been published. The intended native install is:
 
 ```bash
+# Available after the first release and tap are published.
 brew install ogbozoyan/tap/permaenv
 brew upgrade permaenv
 ```
 
-Builds already generate a `permaenv.rb` formula alongside the Python packages, using
-source checksums and runtime dependencies from `uv.lock`. The formula installs Python
-and keeps PermaEnv's dependencies in its own virtual environment. The future macOS
-desktop app will be distributed separately as a Homebrew cask.
+The formula will manage Python and PermaEnv's dependencies. The future macOS desktop
+app will have a separate cask. Until then, use the source installation or local build above.
 
-### What `doctor` checks
+## Check your setup
+
+```bash
+permaenv --help
+permaenv doctor
+permaenv doctor --json
+```
 
 It reports the operating system, architecture, Python version and the paths of tools
 such as Git, Homebrew, npm, Node.js, uv, Zsh, VS Code, IntelliJ IDEA, Codex and Claude.
